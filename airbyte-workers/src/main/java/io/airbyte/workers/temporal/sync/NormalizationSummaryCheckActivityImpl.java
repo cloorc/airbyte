@@ -14,9 +14,13 @@ import java.util.Comparator;
 import java.util.List;
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Singleton
+@AllArgsConstructor
+@NoArgsConstructor
 @Slf4j
 public class NormalizationSummaryCheckActivityImpl implements NormalizationSummaryCheckActivity {
 
@@ -27,7 +31,9 @@ public class NormalizationSummaryCheckActivityImpl implements NormalizationSumma
   public Boolean shouldRunNormalization(final Long jobId, final Long attemptId) throws IOException {
     // if the count of committed records for this attempt is > 0 OR if it is null,
     // then we should run normalization
+    log.info("getting sync stats");
     final SyncStats syncStats = jobPersistence.getSyncStats(attemptId).get(0);
+    log.info("records committed: " + syncStats.getRecordsCommitted());
     if (syncStats.getRecordsCommitted() == null || syncStats.getRecordsCommitted() > 0) {
       return true;
     }

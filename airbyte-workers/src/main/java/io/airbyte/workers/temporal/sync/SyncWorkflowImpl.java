@@ -61,12 +61,16 @@ public class SyncWorkflowImpl implements SyncWorkflow {
 
     if (syncInput.getOperationSequence() != null && !syncInput.getOperationSequence().isEmpty()) {
       for (final StandardSyncOperation standardSyncOperation : syncInput.getOperationSequence()) {
+        LOGGER.info("operator type is: " + standardSyncOperation.getOperatorType());
         if (standardSyncOperation.getOperatorType() == OperatorType.NORMALIZATION) {
-          LOGGER.info("attempt id is: " + jobRunConfig.getAttemptId());
+          // this is the attempt number, not attempt id
+          LOGGER.info("attempt id on jobRunConfig is: " + jobRunConfig.getAttemptId());
           Boolean shouldRun;
           try {
+            LOGGER.info("inside try block");
             shouldRun = normalizationSummaryCheckActivity.shouldRunNormalization(Long.valueOf(jobRunConfig.getJobId()), jobRunConfig.getAttemptId());
           } catch (final IOException e) {
+            LOGGER.info("inside catch block");
             shouldRun = true;
           }
           LOGGER.info("should run: " + shouldRun);
@@ -74,6 +78,7 @@ public class SyncWorkflowImpl implements SyncWorkflow {
           // LOGGER.info("Skipping normalization because there is no new data to normalize.");
           // break;
           // }
+          LOGGER.info("generating normalization input");
           final NormalizationInput normalizationInput = generateNormalizationInput(syncInput, syncOutput);
           final NormalizationSummary normalizationSummary =
               normalizationActivity.normalize(jobRunConfig, destinationLauncherConfig, normalizationInput);
