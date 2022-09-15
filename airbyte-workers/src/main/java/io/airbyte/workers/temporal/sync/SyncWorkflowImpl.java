@@ -16,6 +16,7 @@ import io.airbyte.scheduler.models.IntegrationLauncherConfig;
 import io.airbyte.scheduler.models.JobRunConfig;
 import io.airbyte.workers.temporal.annotations.TemporalActivityStub;
 import io.temporal.workflow.Workflow;
+import java.io.IOException;
 import java.util.UUID;
 import javax.inject.Singleton;
 import org.slf4j.Logger;
@@ -37,6 +38,8 @@ public class SyncWorkflowImpl implements SyncWorkflow {
   private DbtTransformationActivity dbtTransformationActivity;
   @TemporalActivityStub(activityOptionsBeanName = "shortActivityOptions")
   private PersistStateActivity persistActivity;
+  @TemporalActivityStub(activityOptionsBeanName = "shortActivityOptions")
+  private NormalizationSummaryCheckActivity normalizationSummaryCheckActivity;
 
   @Override
   public StandardSyncOutput run(final JobRunConfig jobRunConfig,
@@ -59,6 +62,18 @@ public class SyncWorkflowImpl implements SyncWorkflow {
     if (syncInput.getOperationSequence() != null && !syncInput.getOperationSequence().isEmpty()) {
       for (final StandardSyncOperation standardSyncOperation : syncInput.getOperationSequence()) {
         if (standardSyncOperation.getOperatorType() == OperatorType.NORMALIZATION) {
+          LOGGER.info("attempt id is: " + jobRunConfig.getAttemptId());
+          Boolean shouldRun;
+          try {
+            shouldRun = normalizationSummaryCheckActivity.shouldRunNormalization(Long.valueOf(jobRunConfig.getJobId()), jobRunConfig.getAttemptId());
+          } catch (final IOException e) {
+            shouldRun = true;
+          }
+          LOGGER.info("should run: " + shouldRun);
+          // if (!shouldRun) {
+          // LOGGER.info("Skipping normalization because there is no new data to normalize.");
+          // break;
+          // }
           final NormalizationInput normalizationInput = generateNormalizationInput(syncInput, syncOutput);
           final NormalizationSummary normalizationSummary =
               normalizationActivity.normalize(jobRunConfig, destinationLauncherConfig, normalizationInput);
