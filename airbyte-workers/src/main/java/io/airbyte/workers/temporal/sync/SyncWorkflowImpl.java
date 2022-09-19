@@ -17,6 +17,7 @@ import io.airbyte.scheduler.models.JobRunConfig;
 import io.airbyte.workers.temporal.annotations.TemporalActivityStub;
 import io.temporal.workflow.Workflow;
 import java.io.IOException;
+import java.util.Optional;
 import java.util.UUID;
 import javax.inject.Singleton;
 import org.slf4j.Logger;
@@ -68,16 +69,17 @@ public class SyncWorkflowImpl implements SyncWorkflow {
           Boolean shouldRun;
           try {
             LOGGER.info("inside try block");
-            shouldRun = normalizationSummaryCheckActivity.shouldRunNormalization(Long.valueOf(jobRunConfig.getJobId()), jobRunConfig.getAttemptId());
+            shouldRun = normalizationSummaryCheckActivity.shouldRunNormalization(Long.valueOf(jobRunConfig.getJobId()), jobRunConfig.getAttemptId(),
+                Optional.of(syncOutput.getStandardSyncSummary().getTotalStats().getRecordsCommitted()));
           } catch (final IOException e) {
             LOGGER.info("inside catch block");
             shouldRun = true;
           }
           LOGGER.info("should run: " + shouldRun);
-          // if (!shouldRun) {
-          // LOGGER.info("Skipping normalization because there is no new data to normalize.");
-          // break;
-          // }
+          if (!shouldRun) {
+            LOGGER.info("Skipping normalization because there is no new data to normalize.");
+            break;
+          }
           LOGGER.info("generating normalization input");
           final NormalizationInput normalizationInput = generateNormalizationInput(syncInput, syncOutput);
           final NormalizationSummary normalizationSummary =

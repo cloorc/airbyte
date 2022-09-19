@@ -4,9 +4,11 @@
 
 package io.airbyte.workers.temporal.sync;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -163,29 +165,29 @@ class SyncWorkflowTest {
     return workflow.run(JOB_RUN_CONFIG, SOURCE_LAUNCHER_CONFIG, DESTINATION_LAUNCHER_CONFIG, syncInput, sync.getConnectionId());
   }
 
-  // @Test
-  // void testSuccess() {
-  // doReturn(replicationSuccessOutput).when(replicationActivity).replicate(
-  // JOB_RUN_CONFIG,
-  // SOURCE_LAUNCHER_CONFIG,
-  // DESTINATION_LAUNCHER_CONFIG,
-  // syncInput);
-  //
-  // doReturn(normalizationSummary).when(normalizationActivity).normalize(
-  // JOB_RUN_CONFIG,
-  // DESTINATION_LAUNCHER_CONFIG,
-  // normalizationInput);
-  //
-  // final StandardSyncOutput actualOutput = execute();
-  //
-  // verifyReplication(replicationActivity, syncInput);
-  // verifyPersistState(persistStateActivity, sync, replicationSuccessOutput, syncInput.getCatalog());
-  // verifyNormalize(normalizationActivity, normalizationInput);
-  // verifyDbtTransform(dbtTransformationActivity, syncInput.getResourceRequirements(),
-  // operatorDbtInput);
-  // assertEquals(replicationSuccessOutput.withNormalizationSummary(normalizationSummary),
-  // actualOutput);
-  // }
+  @Test
+  void testSuccess() {
+    doReturn(replicationSuccessOutput).when(replicationActivity).replicate(
+        JOB_RUN_CONFIG,
+        SOURCE_LAUNCHER_CONFIG,
+        DESTINATION_LAUNCHER_CONFIG,
+        syncInput);
+
+    doReturn(normalizationSummary).when(normalizationActivity).normalize(
+        JOB_RUN_CONFIG,
+        DESTINATION_LAUNCHER_CONFIG,
+        normalizationInput);
+
+    final StandardSyncOutput actualOutput = execute();
+
+    verifyReplication(replicationActivity, syncInput);
+    verifyPersistState(persistStateActivity, sync, replicationSuccessOutput, syncInput.getCatalog());
+    verifyNormalize(normalizationActivity, normalizationInput);
+    verifyDbtTransform(dbtTransformationActivity, syncInput.getResourceRequirements(),
+        operatorDbtInput);
+    assertEquals(replicationSuccessOutput.withNormalizationSummary(normalizationSummary),
+        actualOutput);
+  }
 
   @Test
   void testReplicationFailure() {
@@ -203,26 +205,26 @@ class SyncWorkflowTest {
     verifyNoInteractions(dbtTransformationActivity);
   }
 
-  // @Test
-  // void testNormalizationFailure() {
-  // doReturn(replicationSuccessOutput).when(replicationActivity).replicate(
-  // JOB_RUN_CONFIG,
-  // SOURCE_LAUNCHER_CONFIG,
-  // DESTINATION_LAUNCHER_CONFIG,
-  // syncInput);
-  //
-  // doThrow(new IllegalArgumentException("induced exception")).when(normalizationActivity).normalize(
-  // JOB_RUN_CONFIG,
-  // DESTINATION_LAUNCHER_CONFIG,
-  // normalizationInput);
-  //
-  // assertThrows(WorkflowFailedException.class, this::execute);
-  //
-  // verifyReplication(replicationActivity, syncInput);
-  // verifyPersistState(persistStateActivity, sync, replicationSuccessOutput, syncInput.getCatalog());
-  // verifyNormalize(normalizationActivity, normalizationInput);
-  // verifyNoInteractions(dbtTransformationActivity);
-  // }
+  @Test
+  void testNormalizationFailure() {
+    doReturn(replicationSuccessOutput).when(replicationActivity).replicate(
+        JOB_RUN_CONFIG,
+        SOURCE_LAUNCHER_CONFIG,
+        DESTINATION_LAUNCHER_CONFIG,
+        syncInput);
+
+    doThrow(new IllegalArgumentException("induced exception")).when(normalizationActivity).normalize(
+        JOB_RUN_CONFIG,
+        DESTINATION_LAUNCHER_CONFIG,
+        normalizationInput);
+
+    assertThrows(WorkflowFailedException.class, this::execute);
+
+    verifyReplication(replicationActivity, syncInput);
+    verifyPersistState(persistStateActivity, sync, replicationSuccessOutput, syncInput.getCatalog());
+    verifyNormalize(normalizationActivity, normalizationInput);
+    verifyNoInteractions(dbtTransformationActivity);
+  }
 
   @Test
   void testCancelDuringReplication() {
@@ -243,29 +245,29 @@ class SyncWorkflowTest {
     verifyNoInteractions(dbtTransformationActivity);
   }
 
-  // @Test
-  // void testCancelDuringNormalization() {
-  // doReturn(replicationSuccessOutput).when(replicationActivity).replicate(
-  // JOB_RUN_CONFIG,
-  // SOURCE_LAUNCHER_CONFIG,
-  // DESTINATION_LAUNCHER_CONFIG,
-  // syncInput);
-  //
-  // doAnswer(ignored -> {
-  // cancelWorkflow();
-  // return replicationSuccessOutput;
-  // }).when(normalizationActivity).normalize(
-  // JOB_RUN_CONFIG,
-  // DESTINATION_LAUNCHER_CONFIG,
-  // normalizationInput);
-  //
-  // assertThrows(WorkflowFailedException.class, this::execute);
-  //
-  // verifyReplication(replicationActivity, syncInput);
-  // verifyPersistState(persistStateActivity, sync, replicationSuccessOutput, syncInput.getCatalog());
-  // verifyNormalize(normalizationActivity, normalizationInput);
-  // verifyNoInteractions(dbtTransformationActivity);
-  // }
+  @Test
+  void testCancelDuringNormalization() {
+    doReturn(replicationSuccessOutput).when(replicationActivity).replicate(
+        JOB_RUN_CONFIG,
+        SOURCE_LAUNCHER_CONFIG,
+        DESTINATION_LAUNCHER_CONFIG,
+        syncInput);
+
+    doAnswer(ignored -> {
+      cancelWorkflow();
+      return replicationSuccessOutput;
+    }).when(normalizationActivity).normalize(
+        JOB_RUN_CONFIG,
+        DESTINATION_LAUNCHER_CONFIG,
+        normalizationInput);
+
+    assertThrows(WorkflowFailedException.class, this::execute);
+
+    verifyReplication(replicationActivity, syncInput);
+    verifyPersistState(persistStateActivity, sync, replicationSuccessOutput, syncInput.getCatalog());
+    verifyNormalize(normalizationActivity, normalizationInput);
+    verifyNoInteractions(dbtTransformationActivity);
+  }
 
   @SuppressWarnings("ResultOfMethodCallIgnored")
   private void cancelWorkflow() {

@@ -27,19 +27,25 @@ public class NormalizationSummaryCheckActivityImpl implements NormalizationSumma
   private JobPersistence jobPersistence;
 
   @Override
-  public Boolean shouldRunNormalization(final Long jobId, final Long attemptNumber) throws IOException {
-
-    final List<AttemptNormalizationStatus> attemptNormalizationStatuses = jobPersistence.getAttemptNormalizationStatusesForJob(jobId);
-    final AttemptNormalizationStatus currentAttemptNormalizationStatus =
-        attemptNormalizationStatuses.stream().filter(a -> a.getAttemptNumber() == attemptNumber).toList().get(0);
-    final Optional<Long> currentCommittedRecordCount = currentAttemptNormalizationStatus.getRecordsCommitted();
-
+  @SuppressWarnings("PMD.AvoidLiteralsInIfCondition")
+  public Boolean shouldRunNormalization(final Long jobId, final Long attemptNumber, final Optional<Long> numCommittedRecords) throws IOException {
     // if the count of committed records for this attempt is > 0 OR if it is null,
     // then we should run normalization
-
-    if (currentCommittedRecordCount.get() == null || currentCommittedRecordCount.get() > 0) {
+    log.info("num committed records");
+    log.info(String.valueOf(numCommittedRecords.get()));
+    if (numCommittedRecords.get() == null || numCommittedRecords.get() > 0) {
       return true;
     }
+
+    log.info("inside should run normalization");
+    final List<AttemptNormalizationStatus> attemptNormalizationStatuses = jobPersistence.getAttemptNormalizationStatusesForJob(jobId);
+    log.info("num attempt normalization statuses: " + attemptNormalizationStatuses.stream().count());
+
+    log.info("current attempt number passed in: " + attemptNumber);
+    log.info("all attempt numbers");
+    log.info(String.valueOf(attemptNormalizationStatuses.stream().map(a -> a.getAttemptNumber()).toList()));
+
+    log.info("....");
 
     final AtomicReference<Long> totalRecordsCommitted = new AtomicReference<>(0L);
     final AtomicReference<Boolean> shouldReturnTrue = new AtomicReference<>(false);
