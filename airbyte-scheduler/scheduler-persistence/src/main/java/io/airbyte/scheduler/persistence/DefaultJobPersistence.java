@@ -36,6 +36,7 @@ import io.airbyte.db.ExceptionWrappingDatabase;
 import io.airbyte.db.instance.jobs.JobsDatabaseSchema;
 import io.airbyte.db.jdbc.JdbcUtils;
 import io.airbyte.scheduler.models.Attempt;
+import io.airbyte.scheduler.models.AttemptNormalizationStatus;
 import io.airbyte.scheduler.models.AttemptStatus;
 import io.airbyte.scheduler.models.AttemptWithJobInfo;
 import io.airbyte.scheduler.models.Job;
@@ -609,6 +610,17 @@ public class DefaultJobPersistence implements JobPersistence {
         BASE_JOB_SELECT_AND_JOIN + WHERE + "CAST(config_type AS VARCHAR) =  ? AND " + " attempts.ended_at > ? ORDER BY attempts.ended_at ASC",
         Sqls.toSqlName(configType),
         timeConvertedIntoLocalDateTime)));
+  }
+
+  @Override
+  public List<AttemptNormalizationStatus> getAttemptNormalizationStatusesForJob(final Long jobId) throws IOException {
+    return jobDatabase
+        .query(ctx -> ctx.select(ATTEMPTS.ATTEMPT_NUMBER, SYNC_STATS.RECORDS_COMMITTED, NORMALIZATION_SUMMARIES.FAILURES)
+            .from(ATTEMPTS)
+            .join(SYNC_STATS).on(SYNC_STATS.ATTEMPT_ID.eq(ATTEMPTS.ID))
+            .join(NORMALIZATION_SUMMARIES).on(NORMALIZATION_SUMMARIES.ATTEMPT_ID.eq(ATTEMPTS.ID))
+            .fetch(record -> new AttemptNormalizationStatus(record.get(ATTEMPTS.ATTEMPT_NUMBER),
+                Optional.of(record.get(SYNC_STATS.RECORDS_COMMITTED)), record.get(NORMALIZATION_SUMMARIES.FAILURES) != null)));
   }
 
   // Retrieves only Job information from the record, without any attempt info
